@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Dashboard dinámico y raspador en tiempo real para analizar sorteos de la Lotería Poceada Chaqueña.">
+    <title>Loteria Poceada - Dashboard de Análisis</title>
+    
+    <!-- Hoja de Estilos Personalizada -->
+    <link rel="stylesheet" href="style.css">
+    
+    <!-- Librería Chart.js para Gráficos Visuales de Alta Calidad -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+    <!-- Pantalla de Carga Global (Loader) -->
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="spinner"></div>
+        <div id="loadingText" class="loading-text">Cargando datos del Excel...</div>
+    </div>
+
+    <!-- Contenedor Principal de la App -->
+    <div class="app-container">
+        
+        <!-- Header Premium -->
+        <header>
+            <div class="logo-section">
+                <div class="logo-badge">P</div>
+                <div class="title-section">
+                    <h1>Quiniela Poceada Chaqueña</h1>
+                    <p>Dashboard Analítico e Inteligencia de Sorteos</p>
+                </div>
+            </div>
+            
+            <!-- Selector de Archivo Excel -->
+            <div class="file-selector-container">
+                <label for="excelFileSelect">Archivo Excel Activo:</label>
+                <div class="custom-select-wrapper">
+                    <select id="excelFileSelect" class="file-select" aria-label="Seleccionar archivo Excel de datos">
+                        <!-- Rellenado dinámicamente desde el backend -->
+                    </select>
+                </div>
+            </div>
+        </header>
+
+        <!-- Navegación por Pestañas (Tabs) -->
+        <nav class="nav-tabs" aria-label="Menú de navegación del dashboard">
+            <button class="tab-btn active" data-tab="tab-dashboard" id="btn-tab-dashboard">
+                📊 Dashboard General
+            </button>
+            <button class="tab-btn" data-tab="tab-top20" id="btn-tab-top20">
+                🏆 Top 20 por Mes
+            </button>
+            <button class="tab-btn" data-tab="tab-historial" id="btn-tab-historial">
+                📅 Historial de Sorteos
+            </button>
+            <button class="tab-btn" data-tab="tab-simulador" id="btn-tab-simulador">
+                🔮 Simulador de Jugada
+            </button>
+            <button class="tab-btn" data-tab="tab-scraper" id="btn-tab-scraper">
+                ⚡ Actualizar Sorteos
+            </button>
+        </nav>
+
+        <!-- ================= PESTAÑA: DASHBOARD GENERAL ================= -->
+        <main id="tab-dashboard" class="tab-content active">
+            <!-- Tarjetas de Métricas -->
+            <div class="metrics-grid">
+                <div class="metric-card" id="metric-total-draws">
+                    <span class="metric-title">Total Sorteos</span>
+                    <div class="metric-value cyan" id="metric-total-value">-</div>
+                    <span class="metric-subtext">Registros acumulados en base</span>
+                </div>
+                <div class="metric-card" id="metric-last-draw">
+                    <span class="metric-title">Último Sorteo</span>
+                    <div class="metric-value" id="metric-last-value">-</div>
+                    <span class="metric-subtext" id="metric-last-date">Fecha: -</span>
+                </div>
+                <div class="metric-card" id="metric-hot-number">
+                    <span class="metric-title">Número más Caliente</span>
+                    <div class="metric-value purple" id="metric-hot-value">-</div>
+                    <span class="metric-subtext" id="metric-hot-freq">Frecuencia: - apariciones</span>
+                </div>
+                <div class="metric-card" id="metric-cold-number">
+                    <span class="metric-title">Número más Frío</span>
+                    <div class="metric-value" id="metric-cold-value">-</div>
+                    <span class="metric-subtext" id="metric-cold-freq">Frecuencia: - apariciones</span>
+                </div>
+            </div>
+
+            <!-- Distribución Visual Principal (Heatmap Grid) -->
+            <section class="panel-card" style="margin-bottom: 24px;">
+                <div class="panel-title">
+                    Distribución de Frecuencia Histórica (Mapa de Calor)
+                    <span>Haz hover en cualquier celda para ver el conteo de apariciones</span>
+                </div>
+                <div class="heatmap-grid" id="heatmapGrid">
+                    <!-- Rellenado dinámicamente con 100 celdas (00 a 99) -->
+                </div>
+                <div class="heatmap-legend">
+                    <span>Menos Frecuente (Frío)</span>
+                    <div class="legend-scale">
+                        <div class="legend-bar"></div>
+                    </div>
+                    <span>Más Frecuente (Caliente)</span>
+                </div>
+            </section>
+
+            <!-- Sección de Gráficos y Lista de Demoras -->
+            <div class="dashboard-layout">
+                <!-- Gráficos de Frecuencias y Distribución -->
+                <div class="panel-card">
+                    <div class="panel-title">Análisis de Tendencias y Distribuciones</div>
+                    
+                    <div class="charts-row">
+                        <div>
+                            <h3 style="font-size: 0.95rem; margin-bottom: 12px; font-weight: 600; color: var(--text-secondary);">Proporción de Pares vs Impares</h3>
+                            <div class="chart-container">
+                                <canvas id="chartParImpar"></canvas>
+                            </div>
+                        </div>
+                        <div>
+                            <h3 style="font-size: 0.95rem; margin-bottom: 12px; font-weight: 600; color: var(--text-secondary);">Frecuencia por Decenas</h3>
+                            <div class="chart-container">
+                                <canvas id="chartDecenas"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 10px;">
+                        <h3 style="font-size: 0.95rem; margin-bottom: 12px; font-weight: 600; color: var(--text-secondary);">Top 15 Números con Mayor Aparición</h3>
+                        <div class="chart-container" style="height: 250px;">
+                            <canvas id="chartTopFrecuentes"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Lista de Retrasos / Delays (Frialdad) -->
+                <div class="panel-card">
+                    <div class="panel-title">
+                        Demoras Activas (Números Fríos)
+                        <span>Sorteos desde la última aparición</span>
+                    </div>
+                    <div class="delay-list" id="delayList">
+                        <!-- Rellenado dinámicamente -->
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- ================= PESTAÑA: TOP 20 POR MES ================= -->
+        <section id="tab-top20" class="tab-content">
+            <div class="panel-card" style="margin-bottom: 24px;">
+                <div class="month-select-container">
+                    <label for="monthSelect">Selecciona el Mes de Análisis:</label>
+                    <div class="custom-select-wrapper">
+                        <select id="monthSelect" class="file-select" aria-label="Seleccionar mes para ver Top 20">
+                            <!-- Rellenado dinámicamente -->
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="top20-layout">
+                <!-- Gráfico del Top 20 del Mes -->
+                <div class="panel-card">
+                    <div class="panel-title" id="top20-chart-title">Frecuencia de Aparición - Top 20 del Mes</div>
+                    <div class="chart-container" style="height: 400px;">
+                        <canvas id="chartMonthlyTop20"></canvas>
+                    </div>
+                </div>
+
+                <!-- Tabla del Top 20 del Mes -->
+                <div class="panel-card">
+                    <div class="panel-title" id="top20-table-title">Datos del Top 20</div>
+                    <div class="table-wrapper">
+                        <table class="data-table" id="top20Table">
+                            <thead>
+                                <tr>
+                                    <th>Número</th>
+                                    <th>Apariciones (Frecuencia)</th>
+                                    <th>Posición / Rango</th>
+                                </tr>
+                            </thead>
+                            <tbody id="top20TableBody">
+                                <!-- Rellenado dinámicamente -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= PESTAÑA: HISTORIAL DE SORTEOS ================= -->
+        <section id="tab-historial" class="tab-content">
+            <div class="panel-card">
+                <div class="panel-title">
+                    Historial Completo de Sorteos
+                    <span>Visualiza y filtra la base de datos de Excel</span>
+                </div>
+
+                <!-- Controles de Búsqueda y Paginación -->
+                <div class="table-header-controls">
+                    <div class="search-input-wrapper">
+                        <input type="text" id="historySearch" placeholder="Buscar por Sorteo o Fecha (DD-MM-YYYY)..." aria-label="Buscar sorteos">
+                    </div>
+                    
+                    <div class="pagination-controls">
+                        <button class="btn-icon-nav" id="btn-page-first" title="Primera página" aria-label="Primera página">«</button>
+                        <button class="btn-icon-nav" id="btn-page-prev" title="Página anterior" aria-label="Página anterior">‹</button>
+                        <span class="pagination-info" id="paginationInfo">Pág. - de -</span>
+                        <button class="btn-icon-nav" id="btn-page-next" title="Página siguiente" aria-label="Página siguiente">›</button>
+                        <button class="btn-icon-nav" id="btn-page-last" title="Última página" aria-label="Última página">»</button>
+                    </div>
+                </div>
+
+                <!-- Tabla de Historial -->
+                <div class="table-wrapper">
+                    <table class="data-table" id="historyTable">
+                        <thead>
+                            <tr>
+                                <th class="sortable" id="th-sorteo">N° Sorteo ▲▼</th>
+                                <th class="sortable" id="th-fecha">Fecha ▲▼</th>
+                                <th>Números Extraídos (10 posiciones)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historyTableBody">
+                            <!-- Rellenado dinámicamente -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= PESTAÑA: SIMULADOR DE JUGADA ================= -->
+        <section id="tab-simulador" class="tab-content">
+            <div class="sim-container">
+                <div class="sim-input-card">
+                    <h2 style="font-size: 1.4rem; font-weight: 700; margin-bottom: 10px;">Comprobador de Jugadas Históricas</h2>
+                    <p style="color: var(--text-secondary); margin-bottom: 20px; font-size: 0.95rem;">
+                        Elige entre 2 y 8 números para simular tu jugada y comprobar cuántos aciertos hubieras tenido en la historia.
+                    </p>
+                    
+                    <!-- Casillas de Entrada de Bolillas -->
+                    <div class="sim-input-group" id="simInputGroup">
+                        <input type="text" maxlength="2" class="sim-ball-input" placeholder="00" aria-label="Número de bolilla 1">
+                        <input type="text" maxlength="2" class="sim-ball-input" placeholder="00" aria-label="Número de bolilla 2">
+                        <input type="text" maxlength="2" class="sim-ball-input" placeholder="00" aria-label="Número de bolilla 3">
+                        <input type="text" maxlength="2" class="sim-ball-input" placeholder="00" aria-label="Número de bolilla 4">
+                        <input type="text" maxlength="2" class="sim-ball-input" placeholder="00" aria-label="Número de bolilla 5">
+                    </div>
+
+                    <div style="display: flex; justify-content: center; gap: 15px; flex-wrap: wrap;">
+                        <button class="btn-primary" id="btn-run-simulation">Simular Jugada</button>
+                        <button class="btn-secondary" id="btn-add-sim-ball">+ Agregar Número</button>
+                        <button class="btn-secondary" id="btn-remove-sim-ball">- Quitar Número</button>
+                        <button class="btn-secondary" id="btn-clear-sim" style="background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.2); color: #f87171;">Limpiar</button>
+                    </div>
+                </div>
+
+                <!-- Métricas de Resultados de Simulación -->
+                <div class="sim-metrics" id="simMetricsPanel" style="display: none;">
+                    <div class="sim-metric-card">
+                        <div class="sim-metric-val" id="sim-hits-2">0</div>
+                        <div class="sim-metric-lbl">Aciertos (2 números)</div>
+                    </div>
+                    <div class="sim-metric-card">
+                        <div class="sim-metric-val cyan" id="sim-hits-3">0</div>
+                        <div class="sim-metric-lbl">Aciertos (3 números)</div>
+                    </div>
+                    <div class="sim-metric-card">
+                        <div class="sim-metric-val purple" id="sim-hits-4">0</div>
+                        <div class="sim-metric-lbl">Aciertos (4 números)</div>
+                    </div>
+                    <div class="sim-metric-card">
+                        <div class="sim-metric-val warning" id="sim-hits-5">0</div>
+                        <div class="sim-metric-lbl">Premios Mayores (5+ aciertos)</div>
+                    </div>
+                </div>
+
+                <!-- Tabla de Coincidencias Detalladas -->
+                <div class="panel-card" id="simResultsPanel" style="display: none;">
+                    <div class="panel-title">Sorteos Coincidentes (Historial de Éxitos)</div>
+                    <div class="table-wrapper">
+                        <table class="data-table" id="simResultsTable">
+                            <thead>
+                                <tr>
+                                    <th>Sorteo</th>
+                                    <th>Fecha</th>
+                                    <th>Números Extraídos</th>
+                                    <th>Tus Números Acertados</th>
+                                    <th>Aciertos</th>
+                                </tr>
+                            </thead>
+                            <tbody id="simResultsTableBody">
+                                <!-- Rellenado dinámicamente -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= PESTAÑA: ACTUALIZAR SORTEOS (SCRAPER) ================= -->
+        <section id="tab-scraper" class="tab-content">
+            <div class="scraper-container">
+                <div class="scraper-card">
+                    <h2 style="font-size: 1.4rem; font-weight: 700; margin-bottom: 15px;">Extracción de Nuevos Sorteos</h2>
+                    <p style="color: var(--text-secondary); margin-bottom: 24px; font-size: 0.95rem;">
+                        Introduce el rango de sorteos que deseas raspar del sitio web oficial de la Lotería. Los datos procesados se agregarán inteligentemente al archivo Excel seleccionado y no se duplicarán sorteos existentes.
+                    </p>
+
+                    <form id="scraperForm" onsubmit="return false;">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="targetScrapeFile">Archivo Destino:</label>
+                                <input type="text" id="targetScrapeFile" readonly style="background: rgba(255, 255, 255, 0.05); color: var(--text-muted); cursor: not-allowed;">
+                            </div>
+                            <div class="form-group">
+                                <label for="scrapeStart">Sorteo Inicial:</label>
+                                <input type="number" id="scrapeStart" placeholder="Ej: 935" required min="1" aria-label="Sorteo inicial para raspar">
+                            </div>
+                            <div class="form-group">
+                                <label for="scrapeEnd">Sorteo Final:</label>
+                                <input type="number" id="scrapeEnd" placeholder="Ej: 900" required min="1" aria-label="Sorteo final para raspar">
+                            </div>
+                        </div>
+
+                        <div class="scraper-actions">
+                            <button type="button" class="btn-danger" id="btn-cancel-scrape" disabled>Cancelar Proceso</button>
+                            <button type="submit" class="btn-primary" id="btn-start-scrape">Iniciar Extracción</button>
+                        </div>
+                    </form>
+
+                    <!-- Sección de Progreso -->
+                    <div class="progress-section" id="scrapeProgressSection">
+                        <div class="progress-header">
+                            <span id="scrapeProgressLabel">Procesando: Sorteo - de -</span>
+                            <span id="scrapeProgressPercent">0%</span>
+                        </div>
+                        <div class="progress-bar-bg">
+                            <div class="progress-bar-fill" id="scrapeProgressBar"></div>
+                        </div>
+                    </div>
+
+                    <!-- Bitácora del Raspado (Terminal Hacker) -->
+                    <div class="console-section">
+                        <div class="console-title">Bitácora de Ejecución en Tiempo Real:</div>
+                        <div class="console-box" id="scrapeConsole" aria-label="Terminal de registros de extracción">
+                            <div class="console-line">Consola inactiva. Introduce los parámetros y presiona "Iniciar Extracción".</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer>
+            <p>Quiniela Poceada Chaqueña © 2026 - Herramienta de Análisis Estadístico.</p>
+            <p style="margin-top: 5px; font-size: 0.75rem; color: var(--text-muted);">
+                Desarrollado en HTML, CSS y JS con backend liviano de Python.
+            </p>
+        </footer>
+    </div>
+
+    <!-- Script del Cliente -->
+    <script src="app.js"></script>
+</body>
+</html>
