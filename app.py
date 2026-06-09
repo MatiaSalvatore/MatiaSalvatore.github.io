@@ -12,7 +12,7 @@ import requests
 from bs4 import BeautifulSoup
 
 # --- Configuración ---
-PORT = 8000
+PORT = int(os.environ.get("PORT", 8000))
 DIRECTORY = os.getcwd()
 
 # --- Estado del Raspador (Scraper) ---
